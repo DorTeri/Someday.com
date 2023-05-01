@@ -6,12 +6,28 @@ const ObjectId = require('mongodb').ObjectId
 async function query(filterBy) {
     try {
         const collection = await dbService.getCollection('product')
-        console.log('filterBy', filterBy)
         if (filterBy.brand) var products = await collection.find({ brand: filterBy.brand }).toArray()
-        else var products = await collection.find().toArray()
-        if (products.length === 0) {
-            products = await collection.find({ owner: "skdj8s7dkj38jsk92d23sdk" }).toArray()
+        else {
+            var productsArr = await collection.aggregate([
+                {
+                    $group: {
+                        _id: "$brand",
+                        items: { $push: "$$ROOT" }
+                    }
+                },
+                {
+                    $project: {
+                        brand: "$_id",
+                        items: { $slice: ["$items", 8] }
+                    }
+                }
+            ]).toArray()
+            var products = productsArr.reduce((acc, item) => {
+                acc[item._id] = item.items;
+                return acc;
+            }, {});
         }
+        console.log('products', products)
         return products
     } catch (err) {
         logger.error('cannot find products', err)
@@ -26,6 +42,25 @@ async function getById(productId) {
         return product
     } catch (err) {
         logger.error(`while finding product ${productId}`, err)
+        throw err
+    }
+}
+
+async function getBrands() {
+    try {
+        const collection = await dbService.getCollection('product')
+        const brands = collection.aggregate([
+            {
+                $group: {
+                    _id: "$brand",
+                    ctgs: { $addToSet: "$ctg" }
+                }
+            }
+        ]).toArray()
+        console.log('brands', brands)
+        return brands
+    } catch (err) {
+        logger.error(`while finding ctgs`, err)
         throw err
     }
 }
@@ -83,4 +118,5 @@ module.exports = {
     getById,
     add,
     update,
+    getBrands
 }

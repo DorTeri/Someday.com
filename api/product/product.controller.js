@@ -25,6 +25,17 @@ async function getProductById(req, res) {
   }
 }
 
+async function getBrands(req, res) {
+  console.log('req', req)
+  try {
+    const brands = await productService.getBrands()
+    res.json(brands)
+  } catch (err) {
+    logger.error('Failed to get ctgs', err)
+    res.status(500).send({ err: 'Failed to get ctgs' })
+  }
+}
+
 async function addProduct(req, res) {
   const {loggedinUser} = req
 
@@ -104,5 +115,6 @@ module.exports = {
   updateProduct,
   removeProduct,
   addProductMsg,
-  removeProductMsg
+  removeProductMsg,
+  getBrands
 }
